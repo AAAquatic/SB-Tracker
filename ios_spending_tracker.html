@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spending Tracker</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+        background-color: #f8f9fa;
+        color: #333;
+    }
+    h1 {
+        text-align: center;
+    }
+    .container {
+        max-width: 500px;
+        margin: auto;
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    input, button, select {
+        width: 100%;
+        padding: 10px;
+        margin: 5px 0;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+    }
+    canvas {
+        max-width: 100%;
+    }
+</style>
+</head>
+<body>
+    <h1>📊 Spending Tracker</h1>
+    <div class="container">
+        <h3>Add Transaction</h3>
+        <input type="date" id="date">
+        <input type="text" id="desc" placeholder="Description">
+        <input type="number" id="amount" placeholder="Amount">
+        <select id="type">
+            <option value="expense">Expense</option>
+            <option value="income">Income</option>
+        </select>
+        <button onclick="addTransaction()">Add</button>
+
+        <h3>Transactions</h3>
+        <ul id="transactions"></ul>
+
+        <h3>Summary</h3>
+        <p>Total Income: $<span id="totalIncome">0</span></p>
+        <p>Total Expenses: $<span id="totalExpense">0</span></p>
+        <p>Balance: $<span id="balance">0</span></p>
+
+        <h3>Monthly Trend</h3>
+        <canvas id="chart"></canvas>
+    </div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+let transactions = [];
+
+function addTransaction() {
+    const date = document.getElementById('date').value;
+    const desc = document.getElementById('desc').value;
+    const amount = parseFloat(document.getElementById('amount').value);
+    const type = document.getElementById('type').value;
+
+    if (!date || !desc || isNaN(amount)) return;
+
+    transactions.push({ date, desc, amount, type });
+    updateUI();
+}
+
+function updateUI() {
+    let income = 0, expense = 0;
+    const list = document.getElementById('transactions');
+    list.innerHTML = '';
+
+    transactions.forEach(t => {
+        const li = document.createElement('li');
+        li.textContent = `${t.date} - ${t.desc}: $${t.amount} (${t.type})`;
+        list.appendChild(li);
+
+        if (t.type === 'income') income += t.amount;
+        else expense += t.amount;
+    });
+
+    document.getElementById('totalIncome').textContent = income.toFixed(2);
+    document.getElementById('totalExpense').textContent = expense.toFixed(2);
+    document.getElementById('balance').textContent = (income - expense).toFixed(2);
+
+    updateChart();
+}
+
+function updateChart() {
+    const months = {};
+    transactions.forEach(t => {
+        const month = t.date.slice(0,7);
+        if (!months[month]) months[month] = { income: 0, expense: 0 };
+        if (t.type === 'income') months[month].income += t.amount;
+        else months[month].expense += t.amount;
+    });
+
+    const labels = Object.keys(months);
+    const incomeData = labels.map(m => months[m].income);
+    const expenseData = labels.map(m => months[m].expense);
+
+    if (window.chartInstance) window.chartInstance.destroy();
+    const ctx = document.getElementById('chart').getContext('2d');
+    window.chartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [
+                { label: 'Income', data: incomeData, borderColor: 'green', fill: false },
+                { label: 'Expense', data: expenseData, borderColor: 'red', fill: false }
+            ]
+        },
+        options: { responsive: true }
+    });
+}
+</script>
+</body>
+</html>
